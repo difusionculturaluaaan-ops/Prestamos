@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Control de Préstamos</title>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -27,7 +30,6 @@
     --radius: 12px;
     --radius-sm: 8px;
   }
-
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
@@ -38,7 +40,6 @@
     overflow-x: hidden;
   }
 
-  /* Background texture */
   body::before {
     content: '';
     position: fixed;
@@ -49,6 +50,66 @@
     pointer-events: none;
     z-index: 0;
   }
+
+  /* LOGIN */
+  #login-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 14px;
+  }
+  #login-screen.visible { display: flex; }
+  .login-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 40px 36px;
+    width: 340px;
+  }
+  .login-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    color: var(--gold);
+    margin-bottom: 8px;
+  }
+  .login-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Outfit', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .login-input:focus { border-color: var(--gold-dim); }
+  .login-btn {
+    width: 100%;
+    padding: 11px;
+    background: var(--gold);
+    color: #0f0e0c;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'Outfit', sans-serif;
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-top: 4px;
+  }
+  .login-btn:hover { background: var(--gold-light); }
+  #login-error { color: var(--red); font-size: 13px; min-height: 18px; }
 
   .app { position: relative; z-index: 1; }
 
@@ -76,10 +137,8 @@
 
   .header-actions { display: flex; gap: 10px; }
 
-  /* MAIN LAYOUT */
   .main { display: flex; min-height: calc(100vh - 65px); }
 
-  /* SIDEBAR */
   .sidebar {
     width: 260px;
     min-height: 100%;
@@ -133,10 +192,8 @@
   .status-dot.completed { background: var(--text-dim); }
   .status-dot.overdue { background: var(--red); }
 
-  /* CONTENT */
   .content { flex: 1; padding: 28px 32px; overflow-y: auto; }
 
-  /* CARDS DE RESUMEN */
   .summary-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -177,7 +234,6 @@
     font-family: 'DM Mono', monospace;
   }
 
-  /* SECTION TITLE */
   .section-header {
     display: flex;
     align-items: center;
@@ -190,7 +246,6 @@
     color: var(--text);
   }
 
-  /* CLIENT DETAIL */
   .client-detail { display: none; }
   .client-detail.visible { display: block; }
 
@@ -217,13 +272,11 @@
   .meta-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; }
   .meta-value { font-family: 'DM Mono', monospace; font-size: 14px; color: var(--gold-light); margin-top: 2px; }
 
-  /* PROGRESS BAR */
   .progress-section { margin-top: 16px; }
   .progress-label { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
   .progress-bar { height: 6px; background: var(--surface3); border-radius: 99px; overflow: hidden; }
   .progress-fill { height: 100%; background: linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius: 99px; transition: width 0.5s ease; }
 
-  /* PAYMENTS TABLE */
   .payments-table {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -292,7 +345,6 @@
   .badge.current { background: rgba(201,168,76,0.15); color: var(--gold); }
   .badge.overdue { background: rgba(224,92,92,0.15); color: var(--red); }
 
-  /* BUTTONS */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -307,31 +359,16 @@
     transition: all 0.15s;
   }
 
-  .btn-primary {
-    background: var(--gold);
-    color: #0f0e0c;
-  }
+  .btn-primary { background: var(--gold); color: #0f0e0c; }
   .btn-primary:hover { background: var(--gold-light); }
-
-  .btn-secondary {
-    background: var(--surface2);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
   .btn-secondary:hover { background: var(--surface3); }
-
-  .btn-ghost {
-    background: transparent;
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-  }
+  .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
   .btn-ghost:hover { color: var(--text); border-color: var(--border-light); }
-
   .btn-sm { padding: 6px 12px; font-size: 12px; }
   .btn-danger { background: rgba(224,92,92,0.15); color: var(--red); border: 1px solid rgba(224,92,92,0.3); }
   .btn-danger:hover { background: rgba(224,92,92,0.25); }
 
-  /* DASHBOARD OVERVIEW */
   .dashboard { display: none; }
   .dashboard.visible { display: block; }
 
@@ -363,18 +400,13 @@
   }
   .client-card:hover::before { opacity: 1; }
 
-  .card-name {
-    font-family: 'DM Serif Display', serif;
-    font-size: 18px;
-    margin-bottom: 12px;
-  }
+  .card-name { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 12px; }
   .card-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
   .card-lbl { font-size: 11px; color: var(--text-dim); }
   .card-val { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text-muted); }
   .card-val.highlight { color: var(--gold-light); }
   .card-progress { margin-top: 14px; }
 
-  /* MODAL */
   .modal-overlay {
     display: none;
     position: fixed;
@@ -398,12 +430,7 @@
     overflow-y: auto;
   }
 
-  .modal-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 22px;
-    margin-bottom: 20px;
-    color: var(--gold);
-  }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 22px; margin-bottom: 20px; color: var(--gold); }
 
   .form-row { margin-bottom: 16px; }
   .form-label { font-size: 11px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-dim); margin-bottom: 6px; display: block; }
@@ -421,14 +448,12 @@
   }
   .form-input:focus { border-color: var(--gold-dim); }
   .form-input::placeholder { color: var(--text-dim); }
-
   select.form-input { cursor: pointer; }
   option { background: var(--surface2); }
 
   .form-hint { font-size: 11px; color: var(--text-dim); margin-top: 5px; }
   .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
 
-  /* ABONO MODAL */
   .abono-info {
     background: var(--surface2);
     border-radius: var(--radius-sm);
@@ -437,11 +462,9 @@
     display: flex;
     gap: 20px;
   }
-  .abono-info-item { }
   .abono-info-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; }
   .abono-info-value { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--gold); margin-top: 2px; }
 
-  /* EMPTY STATE */
   .empty-state {
     display: flex;
     flex-direction: column;
@@ -454,7 +477,6 @@
   .empty-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text-muted); margin-bottom: 8px; }
   .empty-sub { font-size: 14px; color: var(--text-dim); margin-bottom: 24px; }
 
-  /* TOAST */
   .toast-container {
     position: fixed;
     bottom: 24px;
@@ -485,20 +507,6 @@
     to { transform: translateX(0); opacity: 1; }
   }
 
-  /* EXPORT SECTION */
-  .export-bar {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    padding: 12px 16px;
-    background: var(--surface2);
-    border-radius: var(--radius-sm);
-    margin-bottom: 20px;
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  /* QUICK ABONO BTN */
   .quick-abono-btn {
     display: inline-flex;
     align-items: center;
@@ -529,121 +537,54 @@
 
   .divider { height: 1px; background: var(--border); margin: 20px 0; }
 
-  /* Tooltip */
-  [data-tip] { position: relative; cursor: help; }
-  [data-tip]:hover::after {
-    content: attr(data-tip);
-    position: absolute;
-    bottom: calc(100% + 6px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--surface3);
-    color: var(--text);
-    font-size: 11px;
-    padding: 5px 10px;
-    border-radius: 6px;
-    white-space: nowrap;
-    border: 1px solid var(--border);
-    pointer-events: none;
-    z-index: 50;
-  }
-
   @media (max-width: 900px) {
     .summary-grid { grid-template-columns: repeat(2, 1fr); }
     .table-header, .table-row { grid-template-columns: 40px 1fr 90px 90px 80px; }
     .table-header .th:nth-child(4), .table-row .td:nth-child(4) { display: none; }
   }
 
-  /* ===== MOBILE ===== */
   @media (max-width: 640px) {
-
-    /* Header */
-    header {
-      padding: 12px 16px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+    header { padding: 12px 16px; flex-wrap: wrap; gap: 10px; }
     .logo { font-size: 18px; }
     .header-actions { gap: 6px; }
     .header-actions .btn-ghost { display: none; }
-
-    /* Layout: sidebar oculto por defecto, se muestra como drawer */
     .main { flex-direction: column; }
-
-    .sidebar {
-      width: 100%;
-      min-height: unset;
-      border-right: none;
-      border-bottom: 1px solid var(--border);
-      padding: 12px 0;
-      display: none;
-    }
+    .sidebar { width: 100%; min-height: unset; border-right: none; border-bottom: 1px solid var(--border); padding: 12px 0; display: none; }
     .sidebar.open { display: block; }
-
-    /* Botón para abrir/cerrar sidebar en móvil */
-    .mobile-menu-btn {
-      display: flex !important;
-    }
-
-    /* Content */
+    .mobile-menu-btn { display: flex !important; }
     .content { padding: 16px; }
-
-    /* Summary grid: 2 columnas en móvil */
-    .summary-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 16px;
-    }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
     .summary-card { padding: 14px; }
     .summary-value { font-size: 20px; }
-
-    /* Clients grid */
     .clients-grid { grid-template-columns: 1fr; }
-
-    /* Detail header */
-    .detail-header {
-      flex-direction: column;
-      gap: 16px;
-      padding: 16px;
-    }
-    .detail-header > div:last-child {
-      flex-direction: row !important;
-      justify-content: flex-start;
-    }
+    .detail-header { flex-direction: column; gap: 16px; padding: 16px; }
+    .detail-header > div:last-child { flex-direction: row !important; justify-content: flex-start; }
     .detail-name { font-size: 22px; }
     .detail-meta { gap: 12px; }
     .meta-value { font-size: 13px; }
-
-    /* Table: mostrar solo columnas esenciales */
-    .table-header {
-      grid-template-columns: 36px 1fr 80px 80px !important;
-    }
-    .table-row {
-      grid-template-columns: 36px 1fr 80px 80px !important;
-    }
-    /* Ocultar columnas F.pago y Retraso en móvil */
-    .table-header .th:nth-child(5),
-    .table-header .th:nth-child(6),
-    .table-row .td:nth-child(5),
-    .table-row .td:nth-child(6) { display: none; }
-
-    /* Modal más ancho */
-    .modal {
-      width: 96vw;
-      padding: 20px 16px;
-      margin: 0 auto;
-    }
-
-    /* Abono info bar: wrap */
+    .table-header { grid-template-columns: 36px 1fr 80px 80px !important; }
+    .table-row { grid-template-columns: 36px 1fr 80px 80px !important; }
+    .table-header .th:nth-child(5), .table-header .th:nth-child(6), .table-row .td:nth-child(5), .table-row .td:nth-child(6) { display: none; }
+    .modal { width: 96vw; padding: 20px 16px; margin: 0 auto; }
     .abono-info { flex-wrap: wrap; gap: 10px; }
-
-    /* Section header */
     .section-header { flex-direction: column; align-items: flex-start; gap: 6px; }
   }
 </style>
 </head>
 <body>
-<div class="app">
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-title">Préstamos</div>
+    <input class="login-input" id="li-email" type="email" placeholder="Correo electrónico">
+    <input class="login-input" id="li-pass" type="password" placeholder="Contraseña">
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div id="login-error"></div>
+  </div>
+</div>
+
+<div class="app" style="display:none">
 
   <!-- HEADER -->
   <header>
@@ -660,7 +601,6 @@
   </header>
 
   <div class="main">
-    <!-- SIDEBAR -->
     <aside class="sidebar">
       <div class="sidebar-section-title">Clientes activos</div>
       <div id="sidebarList"></div>
@@ -668,10 +608,7 @@
       <div id="sidebarCompleted"></div>
     </aside>
 
-    <!-- CONTENT -->
     <main class="content">
-
-      <!-- DASHBOARD -->
       <div class="dashboard visible" id="dashboard">
         <div class="summary-grid" id="globalSummary"></div>
         <div class="section-header">
@@ -686,10 +623,7 @@
           </div>
         </div>
       </div>
-
-      <!-- CLIENT DETAIL -->
       <div class="client-detail" id="clientDetail"></div>
-
     </main>
   </div>
 </div>
@@ -785,18 +719,66 @@
   </div>
 </div>
 
-<!-- TOAST CONTAINER -->
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-// ===================== DATA LAYER — Firebase Realtime Database =====================
+// ===================== FIREBASE CONFIG =====================
+const firebaseConfig = {
+  apiKey: "AIzaSyB1T3csU4E9vnZwe2LHfyfn7ijS62ZWVhg",
+  authDomain: "prestamos-raza.firebaseapp.com",
+  databaseURL: "https://prestamos-raza-default-rtdb.firebaseio.com",
+  projectId: "prestamos-raza",
+  storageBucket: "prestamos-raza.firebasestorage.app",
+  messagingSenderId: "1064714540194",
+  appId: "1:1064714540194:web:c76b77b0d5bc630d7ab3fb"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+
+// ===================== AUTH =====================
 const FIREBASE_URL = 'https://prestamos-raza-default-rtdb.firebaseio.com/data.json';
 const LOCAL_KEY = 'prestamos_local';
 
 let db = { clients: [] };
 let currentClientId = null;
 let isSaving = false;
+let authToken = null;
 
+function doLogin() {
+  const email = document.getElementById('li-email').value;
+  const pass  = document.getElementById('li-pass').value;
+  document.getElementById('login-error').textContent = '';
+  auth.signInWithEmailAndPassword(email, pass)
+    .catch(() => {
+      document.getElementById('login-error').textContent = 'Correo o contraseña incorrectos';
+    });
+}
+
+// Enter key en login
+document.getElementById('li-pass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+auth.onAuthStateChanged(async user => {
+  if (user) {
+    authToken = await user.getIdToken();
+    document.getElementById('login-screen').classList.remove('visible');
+    document.querySelector('.app').style.display = '';
+    loadData();
+  } else {
+    document.querySelector('.app').style.display = 'none';
+    document.getElementById('login-screen').classList.add('visible');
+  }
+});
+
+async function getToken() {
+  const user = auth.currentUser;
+  if (user) authToken = await user.getIdToken();
+  return authToken;
+}
+
+// ===================== DATA LAYER =====================
 function setLoading(on) {
   const el = document.getElementById('sync-status');
   if (el) el.textContent = on ? '⏳ Guardando...' : '✓ Guardado';
@@ -811,7 +793,8 @@ async function saveData(data) {
   saveLocal(data);
   setLoading(true);
   try {
-    await fetch(FIREBASE_URL, {
+    const token = await getToken();
+    await fetch(`${FIREBASE_URL}?auth=${token}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
@@ -825,20 +808,19 @@ async function saveData(data) {
 
 async function loadData() {
   setLoading(true);
-  // Cargar local primero para mostrar algo inmediato
   const local = localStorage.getItem(LOCAL_KEY);
   if (local) {
     try { db = JSON.parse(local); render(); } catch(e) {}
   }
-  // Luego cargar de Firebase
   try {
-    const res = await fetch(FIREBASE_URL);
+    const token = await getToken();
+    const res = await fetch(`${FIREBASE_URL}?auth=${token}`);
     const data = await res.json();
     if (data && data.clients) {
       db = data;
       saveLocal(db);
       toast('Sincronizado ✓', 'success');
-    } else {
+    } else if (!local) {
       db = { clients: [] };
     }
   } catch(e) {
@@ -886,21 +868,12 @@ function importData() {
 }
 
 // ===================== CONSTANTS =====================
-const CUOTA_POR_MIL = 78;   // $78 por cada $1000 prestados
+const CUOTA_POR_MIL = 78;
 const NUM_PAGOS = 16;
-const TASA_INTERES = (CUOTA_POR_MIL * NUM_PAGOS - 1000) / 1000; // 24.8%
 
-function calcCuota(monto) {
-  return (monto / 1000) * CUOTA_POR_MIL;
-}
-
-function calcTotal(monto) {
-  return calcCuota(monto) * NUM_PAGOS;
-}
-
-function calcInteres(monto) {
-  return calcTotal(monto) - monto;
-}
+function calcCuota(monto) { return (monto / 1000) * CUOTA_POR_MIL; }
+function calcTotal(monto) { return calcCuota(monto) * NUM_PAGOS; }
+function calcInteres(monto) { return calcTotal(monto) - monto; }
 
 // ===================== FORMATTING =====================
 function fmt(n) {
@@ -918,17 +891,9 @@ function today() {
 }
 
 // ===================== CLIENT UTILS =====================
-function getClient(id) {
-  return db.clients.find(c => c.id === id);
-}
-
-function getPaidCount(client) {
-  return client.payments.filter(p => p.paid).length;
-}
-
-function getNextPayment(client) {
-  return client.payments.find(p => !p.paid);
-}
+function getClient(id) { return db.clients.find(c => c.id === id); }
+function getPaidCount(client) { return client.payments.filter(p => p.paid).length; }
+function getNextPayment(client) { return client.payments.find(p => !p.paid); }
 
 function getTotalPaid(client) {
   return client.payments.reduce((s, p) => {
@@ -938,13 +903,8 @@ function getTotalPaid(client) {
   }, 0);
 }
 
-function getTotalDue(client) {
-  return calcTotal(client.amount);
-}
-
-function isCompleted(client) {
-  return getPaidCount(client) === NUM_PAGOS;
-}
+function getTotalDue(client) { return calcTotal(client.amount); }
+function isCompleted(client) { return getPaidCount(client) === NUM_PAGOS; }
 
 function generatePaymentDates(startDate, freq, count) {
   const dates = [];
@@ -980,19 +940,11 @@ function createClient() {
 
   const client = {
     id: Date.now().toString(),
-    name,
-    amount,
-    freq,
-    startDate,
+    name, amount, freq, startDate,
     createdAt: today(),
     payments: dates.map((date, i) => ({
-      num: i + 1,
-      dueDate: date,
-      cuota,
-      paid: false,
-      paidDate: null,
-      amountPaid: null,
-      note: ''
+      num: i + 1, dueDate: date, cuota,
+      paid: false, paidDate: null, amountPaid: null, note: ''
     }))
   };
 
@@ -1011,9 +963,8 @@ function openAbonoModal(clientId) {
   currentAbonoClientId = clientId;
   const client = getClient(clientId);
   const cuota = calcCuota(client.amount);
-
-  // Info bar
   const credito = client.credito || 0;
+
   document.getElementById('abono-info-bar').innerHTML = `
     <div class="abono-info-item">
       <div class="abono-info-label">Cuota estándar</div>
@@ -1033,7 +984,6 @@ function openAbonoModal(clientId) {
     </div>
   `;
 
-  // Payment selector
   const sel = document.getElementById('ab-paynum');
   sel.innerHTML = '';
   client.payments.filter(p => !p.paid).forEach(p => {
@@ -1047,7 +997,6 @@ function openAbonoModal(clientId) {
   document.getElementById('ab-amount').value = cuota.toFixed(2);
   document.getElementById('ab-date').value = today();
   document.getElementById('ab-note').value = '';
-
   document.getElementById('abonoModal').classList.add('open');
 }
 
@@ -1067,23 +1016,18 @@ function saveAbono() {
   const cuota = calcCuota(client.amount);
   const creditoAnterior = client.credito || 0;
 
-  // Registrar el abono
   if (!payment.abonos) payment.abonos = [];
   payment.abonos.push({ fecha: date, monto: amount, nota: note });
 
-  // Total abonado en este pago (sin contar crédito todavía)
   const totalAbonos = payment.abonos.reduce((s, a) => s + a.monto, 0);
-  // Total disponible incluyendo crédito anterior
   const totalDisponible = totalAbonos + creditoAnterior;
 
   if (totalDisponible >= cuota) {
-    // Pago completo
     payment.paid = true;
     payment.paidDate = date;
-    payment.amountPaid = totalAbonos; // solo lo que pagó, sin inflar con crédito
+    payment.amountPaid = totalAbonos;
     payment.daysLate = calcDaysLate(payment.dueDate, date);
     payment.note = note;
-    // Crédito sobrante
     const sobra = parseFloat((totalDisponible - cuota).toFixed(2));
     client.credito = sobra;
     if (sobra > 0) {
@@ -1092,7 +1036,6 @@ function saveAbono() {
       toast(`Pago #${payNum} registrado — ${fmt(amount)}`, 'success');
     }
   } else {
-    // Pago parcial
     payment.paid = false;
     payment.amountPaid = totalAbonos;
     client.credito = 0;
@@ -1119,8 +1062,6 @@ function openEditPayModal(clientId, payNum) {
   editPayNum = payNum;
 
   const cuota = calcCuota(client.amount);
-  const daysLate = calcDaysLate(p.dueDate, p.paidDate);
-
   document.getElementById('ep-info').innerHTML =
     `<strong style="color:var(--text)">Pago #${p.num}</strong> · Vencía: <span style="color:var(--gold)">${fmtDate(p.dueDate)}</span>`;
   document.getElementById('ep-date').value = p.paidDate || today();
@@ -1179,19 +1120,14 @@ function saveEditPayment() {
 function undoPayment() {
   const client = getClient(editPayClientId);
   const p = client.payments.find(x => x.num === editPayNum);
-  if (!confirm(`¿Desmarcar el pago #${p.num}? Se borrará la fecha y monto registrados.`)) return;
-  p.paid = false;
-  p.paidDate = null;
-  p.amountPaid = null;
-  p.note = '';
-  p.daysLate = null;
+  if (!confirm(`¿Desmarcar el pago #${p.num}?`)) return;
+  p.paid = false; p.paidDate = null; p.amountPaid = null; p.note = ''; p.daysLate = null;
   saveData(db);
   closeModal('editPayModal');
   toast(`Pago #${editPayNum} desmarcado`, 'success');
   render();
   showClient(editPayClientId);
 }
-
 
 function openNewClientModal() {
   document.getElementById('nc-name').value = '';
@@ -1205,21 +1141,19 @@ function closeModal(id) {
   document.getElementById(id).classList.remove('open');
 }
 
-// Live calc hint
 document.getElementById('nc-amount').addEventListener('input', function() {
   const v = parseFloat(this.value);
   if (v >= 100) {
     const cuota = calcCuota(v);
     const total = calcTotal(v);
     const interes = calcInteres(v);
-    document.getElementById('nc-calc-hint').innerHTML = 
+    document.getElementById('nc-calc-hint').innerHTML =
       `16 pagos de <strong style="color:var(--gold)">${fmt(cuota)}</strong> · Total: <strong>${fmt(total)}</strong> · Interés: <strong style="color:var(--green)">${fmt(interes)}</strong>`;
   } else {
     document.getElementById('nc-calc-hint').textContent = '';
   }
 });
 
-// Close on overlay click
 document.querySelectorAll('.modal-overlay').forEach(overlay => {
   overlay.addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('open');
@@ -1245,7 +1179,6 @@ function closeSidebarOnMobile() {
     document.querySelector('.sidebar').classList.remove('open');
   }
 }
-
 
 function showDashboard() {
   currentClientId = null;
@@ -1382,7 +1315,6 @@ function renderClientDetail(id) {
     const rowClass = p.paid ? 'paid' : isPartial ? 'current' : isCurrent ? 'current' : '';
     const numClass = p.paid ? 'paid' : isPartial || isCurrent ? 'current' : '';
 
-    // Pagado column
     let pagadoStr = '—';
     if (p.paid) {
       const diff = p.amountPaid - cuota;
@@ -1394,7 +1326,6 @@ function renderClientDetail(id) {
       pagadoStr = `<span style="color:var(--gold)">${fmt(totalAbonado)}</span> <span style="font-size:10px;color:var(--red)">falta ${fmt(falta)}</span>`;
     }
 
-    // Days late column
     let daysLateStr = '—';
     if (p.paid && p.paidDate) {
       const dl = p.daysLate !== undefined && p.daysLate !== null ? p.daysLate : calcDaysLate(p.dueDate, p.paidDate);
@@ -1405,14 +1336,12 @@ function renderClientDetail(id) {
       daysLateStr = `<span style="color:var(--red);font-size:12px">+${dl}d</span>`;
     }
 
-    // Action button
     const actionBtn = p.paid
       ? `<button class="quick-abono-btn" onclick="openEditPayModal('${client.id}', ${p.num})" style="font-size:11px;padding:4px 8px">✏ Editar</button>`
       : (isCurrent || isPartial)
         ? `<button class="quick-abono-btn" onclick="openAbonoModal('${client.id}')">+ Abono</button>`
         : '';
 
-    // Partial abonos detail
     const abonosDetail = isPartial
       ? `<div style="grid-column:1/-1;padding:6px 16px 10px 56px;font-size:11px;color:var(--text-dim)">
           ${p.abonos.map(a => `<span style="margin-right:12px">📅 ${fmtDate(a.fecha)} · ${fmt(a.monto)}${a.nota ? ' · ' + a.nota : ''}</span>`).join('')}
@@ -1433,6 +1362,13 @@ function renderClientDetail(id) {
     `;
   }).join('');
 
+  const paidArr = client.payments.filter(p => p.paid && p.paidDate);
+  const avgDelay = paidArr.length
+    ? (paidArr.reduce((s, p) => s + calcDaysLate(p.dueDate, p.paidDate), 0) / paidArr.length)
+    : null;
+  const avgDelayColor = avgDelay === null ? 'var(--text-muted)' : avgDelay > 3 ? 'var(--red)' : avgDelay > 0 ? 'var(--gold)' : 'var(--green)';
+  const avgDelayStr = avgDelay === null ? '—' : avgDelay <= 0 ? 'Puntual' : '+' + avgDelay.toFixed(1) + ' días';
+
   document.getElementById('clientDetail').innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
       <button class="btn btn-ghost btn-sm" onclick="showDashboard()">← Volver</button>
@@ -1448,36 +1384,13 @@ function renderClientDetail(id) {
           ${status === 'overdue' ? '<span class="badge overdue">⚠ Vencido</span>' : status === 'completed' ? '<span class="badge paid">✓ Completado</span>' : '<span class="badge current">Activo</span>'}
         </div>
         <div class="detail-meta">
-          <div class="meta-item">
-            <div class="meta-label">Capital</div>
-            <div class="meta-value">${fmt(client.amount)}</div>
-          </div>
-          <div class="meta-item">
-            <div class="meta-label">Cuota</div>
-            <div class="meta-value">${fmt(cuota)}</div>
-          </div>
-          <div class="meta-item">
-            <div class="meta-label">Total a pagar</div>
-            <div class="meta-value">${fmt(total)}</div>
-          </div>
-          <div class="meta-item">
-            <div class="meta-label">Interés generado</div>
-            <div class="meta-value" style="color:var(--green)">${fmt(calcInteres(client.amount))}</div>
-          </div>
-          <div class="meta-item">
-            <div class="meta-label">Cobrado</div>
-            <div class="meta-value">${fmt(cobrado)}</div>
-          </div>
-          <div class="meta-item">
-            <div class="meta-label">Retraso promedio</div>
-            <div class="meta-value" style="color:${(() => { const paidArr = client.payments.filter(p => p.paid && p.paidDate); if (!paidArr.length) return 'var(--text-muted)'; const avg = paidArr.reduce((s,p) => s + calcDaysLate(p.dueDate, p.paidDate), 0) / paidArr.length; return avg > 3 ? 'var(--red)' : avg > 0 ? 'var(--gold)' : 'var(--green)'; })()}">
-              ${(() => { const paidArr = client.payments.filter(p => p.paid && p.paidDate); if (!paidArr.length) return '—'; const avg = (paidArr.reduce((s,p) => s + calcDaysLate(p.dueDate, p.paidDate), 0) / paidArr.length).toFixed(1); return avg <= 0 ? 'Puntual' : '+' + avg + ' días'; })()}
-            </div>
-          </div>
-          <div class="meta-item">
-            <div class="meta-label">Saldo pendiente</div>
-            <div class="meta-value" style="color:${saldo > 0 ? 'var(--red)' : 'var(--green)'}">${fmt(saldo)}</div>
-          </div>
+          <div class="meta-item"><div class="meta-label">Capital</div><div class="meta-value">${fmt(client.amount)}</div></div>
+          <div class="meta-item"><div class="meta-label">Cuota</div><div class="meta-value">${fmt(cuota)}</div></div>
+          <div class="meta-item"><div class="meta-label">Total a pagar</div><div class="meta-value">${fmt(total)}</div></div>
+          <div class="meta-item"><div class="meta-label">Interés generado</div><div class="meta-value" style="color:var(--green)">${fmt(calcInteres(client.amount))}</div></div>
+          <div class="meta-item"><div class="meta-label">Cobrado</div><div class="meta-value">${fmt(cobrado)}</div></div>
+          <div class="meta-item"><div class="meta-label">Retraso promedio</div><div class="meta-value" style="color:${avgDelayColor}">${avgDelayStr}</div></div>
+          <div class="meta-item"><div class="meta-label">Saldo pendiente</div><div class="meta-value" style="color:${saldo > 0 ? 'var(--red)' : 'var(--green)'}">${fmt(saldo)}</div></div>
         </div>
         <div class="progress-section" style="max-width:400px;margin-top:16px">
           <div class="progress-label"><span>${paid} de ${NUM_PAGOS} pagos</span><span>${pct}%</span></div>
@@ -1497,37 +1410,6 @@ function renderClientDetail(id) {
         <div style="font-size:12px;color:var(--text-dim)">${next ? 'Próximo vencimiento: ' + fmtDate(next.dueDate) : 'Préstamo terminado'}</div>
       </div>
     </div>
-
-    ${(() => {
-      const retrasados = client.payments.filter(p => p.paid && p.daysLate > 0);
-      const parciales = client.payments.filter(p => !p.paid && p.abonos && p.abonos.length > 0);
-      if (!retrasados.length && !parciales.length) return '';
-      return `
-        <div style="background:rgba(224,92,92,0.06);border:1px solid rgba(224,92,92,0.2);border-radius:var(--radius);padding:16px;margin-bottom:16px">
-          <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--red);margin-bottom:10px">📊 Historial de retrasos y parciales</div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px">
-            ${retrasados.map(p => `
-              <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px">
-                <span style="color:var(--text-muted)">Pago #${p.num}</span>
-                <span style="color:var(--red);margin-left:8px">+${p.daysLate}d tarde</span>
-                <span style="color:var(--text-dim);margin-left:8px">${fmtDate(p.paidDate)}</span>
-              </div>
-            `).join('')}
-            ${parciales.map(p => {
-              const totalAbonado = p.abonos.reduce((s, a) => s + a.monto, 0);
-              const cuotaP = calcCuota(client.amount);
-              return `
-                <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px">
-                  <span style="color:var(--text-muted)">Pago #${p.num}</span>
-                  <span style="color:var(--gold);margin-left:8px">Parcial ${fmt(totalAbonado)}/${fmt(cuotaP)}</span>
-                  <span style="color:var(--red);margin-left:8px">falta ${fmt(cuotaP - totalAbonado)}</span>
-                </div>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      `;
-    })()}
 
     <div class="payments-table">
       <div class="table-header">
@@ -1555,53 +1437,12 @@ function deleteClient(id) {
   render();
 }
 
-// ===================== EXPORT / IMPORT =====================
-function exportData() {
-  const json = JSON.stringify(db, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `prestamos_${today()}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast('Datos exportados', 'success');
-}
-
-function importData() {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
-  input.onchange = function(e) {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      try {
-        const imported = JSON.parse(ev.target.result);
-        if (!imported.clients) throw new Error('Formato inválido');
-        db = imported;
-        saveData(db);
-        render();
-        showDashboard();
-        toast(`Importados ${db.clients.length} cliente(s)`, 'success');
-      } catch(err) {
-        toast('Error al importar: ' + err.message, 'error');
-      }
-    };
-    reader.readAsText(file);
-  };
-  input.click();
-}
-
 // ===================== MAIN RENDER =====================
 function render() {
   renderSidebar();
   renderDashboard();
   if (currentClientId) renderClientDetail(currentClientId);
 }
-
-// Init
-loadData();
 </script>
 </body>
 </html>
