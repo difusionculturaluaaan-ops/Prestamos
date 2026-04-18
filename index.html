@@ -938,7 +938,9 @@ function getTotalPaid(client) {
 }
 
 function getTotalDue(client) { return calcTotal(client.amount); }
-function isCompleted(client) { return getPaidCount(client) === NUM_PAGOS; }
+function isCompleted(client) { 
+  return getPaidCount(client) === NUM_PAGOS || getTotalPaid(client) >= getTotalDue(client); 
+}
 
 function generatePaymentDates(startDate, freq, count) {
   const dates = [];
