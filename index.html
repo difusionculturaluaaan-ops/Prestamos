@@ -292,7 +292,31 @@
     border-bottom: 1px solid var(--border);
     padding: 12px 16px;
   }
+.completed-card {
+    border-color: var(--gold) !important;
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(201,168,76,0.08) 100%);
+    box-shadow: 0 0 24px rgba(201,168,76,0.12), inset 0 0 40px rgba(201,168,76,0.04);
+  }
+  .completed-card::before { opacity: 1 !important; }
+  .completed-card .card-name { color: var(--gold-light); }
+  .completed-card:hover { box-shadow: 0 4px 32px rgba(201,168,76,0.22); }
 
+  .pagado-seal {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(201,168,76,0.15);
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    transform: rotate(3deg);
+    font-family: 'DM Mono', monospace;
+  }
   .th {
     font-size: 10px;
     font-weight: 600;
