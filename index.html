@@ -738,7 +738,9 @@ const auth = firebase.auth();
 
 // ===================== AUTH =====================
 const FIREBASE_URL = 'https://prestamos-raza-default-rtdb.firebaseio.com/data.json';
+const SHEETS_URL = 'https://script.google.com/macros/s/AKfycbymy2fSJZIbmc8K8p3mJQJ7Esu5YckBsU-taTOvnMfqtVX-Ri_okOxDl64BczkA-48V/exec';
 const LOCAL_KEY = 'prestamos_local';
+  
 
 let db = { clients: [] };
 let currentClientId = null;
@@ -799,6 +801,14 @@ async function saveData(data) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
+    if (typeof SHEETS_URL !== 'undefined' && SHEETS_URL) {
+      fetch(SHEETS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).catch(() => {});
+    }
     toast('Guardado ✓', 'success');
   } catch(e) {
     toast('Guardado local ✓', 'success');
