@@ -1309,7 +1309,8 @@ function renderDashboard() {
     const status = getStatus(c);
     const next = getNextPayment(c);
     return `
-      <div class="client-card" onclick="showClient('${c.id}')">
+      <div class="client-card ${isCompleted(c) ? 'completed-card' : ''}" onclick="showClient('${c.id}')">
+        ${isCompleted(c) ? '<div class="pagado-seal">✅ PAGADO</div>' : ''}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <div class="card-name">${c.name}</div>
           <span class="chip ${c.freq}">${c.freq}</span>
