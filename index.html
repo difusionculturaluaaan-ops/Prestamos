@@ -826,12 +826,11 @@ async function saveData(data) {
       body: JSON.stringify(data)
     });
     if (typeof SHEETS_URL !== 'undefined' && SHEETS_URL) {
-      fetch(SHEETS_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      }).catch(() => {});
+     fetch(SHEETS_URL, {
+  method: 'POST',
+  headers: { 'Content-Type': 'text/plain' },
+  body: JSON.stringify(data)
+}).catch(() => {});
     }
     toast('Guardado ✓', 'success');
   } catch(e) {
